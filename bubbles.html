@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BUBBLE POP!</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ==========================================================
+     🧭 INSTRUCTIONS FOR CODE ASSISTANTS (HUMAN OR AI)
+     ----------------------------------------------------------
+     If you are an AI model (like Mistral 7B) or a human editor
+     helping a student modify this file, follow these rules:
+
+     1. PRESERVE COMMENTS
+        - Do NOT delete the existing comments unless a student
+          specifically asks you to clean them up for a final version.
+        - These comments are part of the learning experience.
+
+     2. UPDATE COMMENTS WHEN CODE CHANGES
+        - If you change how something works (for example, bubble
+          speed, scoring rules, or layout), update any comments that
+          are now inaccurate so they still match the new behavior.
+
+     3. ADD NEW COMMENTS WHEN ADDING FEATURES
+        - For new features, include:
+          🧠 TEACHER NOTE — Explain what the new code does.
+          🤖 AI PROMPT HELP — Suggest how a student could ask an AI
+             for help changing or understanding that code.
+
+     4. KEEP IT STUDENT-FRIENDLY
+        - Use simple language:
+          “This code does X” / “Students can change Y to do Z”.
+        - Avoid very advanced jargon unless you also explain it.
+
+     This turns the file into a shared teaching space between:
+     - the teacher
+     - the student
+     - and the local AI assistant.
+  ========================================================== -->
+
+  <!-- ==============================
+       🎨 CSS STYLES (NEUTRAL THEME)
+       ============================== -->
+  <style>
+    /* ---------------------------------------------------------
+       🌈 CSS VARIABLES — NEUTRAL COLORS
+       🧠 TEACHER NOTE:
+         These variables define a simple, neutral color palette.
+         Students can change these values to redesign the "theme"
+         without hunting through the entire CSS.
+
+       🤖 AI PROMPT HELP:
+         "Change the CSS variables so the game has a dark space
+          theme with purple and blue colors."
+    ---------------------------------------------------------- */
+    :root {
+      --bg-page: #e8edf5;      /* Light neutral page background */
+      --bg-panel: #ffffff;     /* Main card / panel color       */
+      --border-panel: #c5cfdd; /* Soft border around main panel */
+      --text-main: #1f2933;    /* Dark gray text                */
+      --accent: #2563eb;       /* Accent color for numbers      */
+      --accent-soft: #dbeafe;  /* Very light accent background  */
+      --button-bg: #2563eb;    /* Button background color       */
+      --button-bg-hover: #1d4ed8;
+      --button-text: #ffffff;
+    }
+
+    /* ---------------------------------------------------------
+       GLOBAL RESET
+       🧠 TEACHER NOTE:
+         box-sizing: border-box makes width/height calculations
+         easier and more predictable.
+    ---------------------------------------------------------- */
+    * {
+      box-sizing: border-box;
+    }
+
+    /* ---------------------------------------------------------
+       BODY LAYOUT
+       🧠 TEACHER NOTE:
+         The body is just a centered flex container on a neutral
+         background. The "fancy site" gradients from the original
+         version have been removed on purpose so students get a
+         clean slate for styling.
+
+       🤖 AI PROMPT HELP:
+         "Add a soft gradient background to the body that goes
+          from light blue at the top to white at the bottom."
+    ---------------------------------------------------------- */
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      background: var(--bg-page);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+
+    /* ---------------------------------------------------------
+       MAIN WRAPPER PANEL
+       🧠 TEACHER NOTE:
+         This is the central "card" that holds the game title,
+         HUD (score/time/missed), play area, and button.
+
+         Students can adjust:
+         - max-width to make it wider/narrower
+         - padding and border-radius to change shape
+    ---------------------------------------------------------- */
+    .wrapper {
+      max-width: 800px;
+      width: 100%;
+      padding: 1.5rem 1.75rem;
+      border-radius: 14px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    /* ---------------------------------------------------------
+       HEADING
+       🧠 TEACHER NOTE:
+         Simple heading centered at the top. Students can change
+         font-size or add a subtitle below if they want.
+
+       🤖 AI PROMPT HELP:
+         "Add a smaller subtitle line under the main heading that
+          describes the game in one sentence."
+    ---------------------------------------------------------- */
+    h1 {
+      text-align: center;
+      margin: 0 0 0.75rem;
+      font-size: 2rem;
+    }
+
+    /* ---------------------------------------------------------
+       HUD (Score / Missed / Time)
+       🧠 TEACHER NOTE:
+         HUD stands for Heads-Up Display. It shows current game
+         information. This is a simple flex row that wraps nicely
+         on small screens.
+
+       Students can:
+       - change font sizes
+       - add more stats (like “Highest streak”)
+    ---------------------------------------------------------- */
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 10px;
+      background: var(--accent-soft);
+      font-size: 0.95rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .hud span strong {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* ---------------------------------------------------------
+       GAME AREA
+       🧠 TEACHER NOTE:
+         This is the box where bubbles appear and move upward.
+         It is relatively positioned so that the bubbles can be
+         absolutely positioned inside.
+
+       Students can:
+       - change height to make the game easier/harder
+       - change background color to fit their own theme
+    ---------------------------------------------------------- */
+    #game-area {
+      position: relative;      /* Needed for absolute-positioned bubbles */
+      margin: 0 auto;
+      margin-top: 0.4rem;
+      width: 100%;
+      max-width: 700px;
+      height: 420px;
+      border-radius: 12px;
+      background: #090909;     /* Simple light background */
+      overflow: hidden;        /* Hides bubbles that float off-screen */
+      border: 1px solid #d2d6e0;
+    }
+
+    /* ---------------------------------------------------------
+       CONTROLS (Start / Restart)
+       🧠 TEACHER NOTE:
+         Single button centered for starting the game. Students
+         can add more buttons (e.g., "Pause" or "Easy / Hard").
+
+       🤖 AI PROMPT HELP:
+         "Add another button next to Start Game called 'Easy Mode'
+          that sets MAX_MISSED to a higher number."
+    ---------------------------------------------------------- */
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-top: 0.9rem;
+    }
+
+    button {
+      cursor: pointer;
+      padding: 0.55rem 1.25rem;
+      border-radius: 999px;
+      border: none;
+      background: var(--button-bg);
+      color: var(--button-text);
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      transition: transform 0.1s ease, box-shadow 0.15s ease,
+        background 0.15s ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--button-bg-hover);
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35);
+      transform: translateY(-1px);
+    }
+    button:active:not(:disabled) {
+      transform: translateY(1px) scale(0.98);
+      box-shadow: none;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    /* ---------------------------------------------------------
+       HINT TEXT
+       🧠 TEACHER NOTE:
+         A small line of instructional text under the button.
+         Students can rewrite this to match new rules.
+    ---------------------------------------------------------- */
+    .hint {
+      text-align: center;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    /* ==========================================================
+       🎈 BUBBLE DESIGN
+       ==========================================================
+       🧠 TEACHER NOTE:
+         Each bubble is a simple circle with:
+         - position: absolute (so we can place it anywhere)
+         - starting at the bottom
+         - a basic "shiny" look using a radial gradient
+         - an animation that makes it float up and sway
+
+         The original "bubble" design had stronger glow effects
+         and blend modes. Those have been simplified to keep
+         the visuals neutral and easier to understand.
+
+       🤖 AI PROMPT HELP:
+         "Make the bubbles slightly transparent and add a glow
+          around them when the player hovers with the mouse."
+    ========================================================== */
+
+    .bubble {
+      position: absolute;
+      bottom: -80px;    /* Start slightly below the visible area */
+      border-radius: 50%;
+      cursor: pointer;
+      width: 80px;
+      height: 80px;
+
+      /* Simple shiny, semi-transparent bubble appearance */
+      background: radial-gradient(circle at 30% 30%,
+                  rgba(255, 255, 255, 0.9),
+                  rgba(255, 255, 255, 0.2) 45%,
+                  rgba(180, 200, 255, 0.15) 70%);
+      border: 2px solid rgba(180, 200, 255, 0.8);
+
+      /* Two animations: vertical float + side-to-side sway */
+      animation:
+        floatUp var(--floatDuration) linear forwards,
+        swaySide var(--swayDuration) ease-in-out infinite;
+    }
+
+    /* When popped, shrink & fade */
+    .bubble.popped {
+      animation: pop 0.35s ease-out forwards;
+      pointer-events: none; /* Can't click again while popping */
+    }
+
+    /* ---------------------------------------------------------
+       KEYFRAMES — HOW BUBBLES MOVE
+       🧠 TEACHER NOTE:
+         These animations are applied to each bubble. The actual
+         durations (how fast they run) are set per-bubble using
+         CSS custom properties in JavaScript.
+    ---------------------------------------------------------- */
+
+    /* Float upward from bottom to above the top */
+    @keyframes floatUp {
+      from { bottom: 0; }
+      to   { bottom: 110%; } /* Slightly above the top edge */
+    }
+
+    /* Gentle left-right swaying motion */
+    @keyframes swaySide {
+      0%   { transform: translateX(0); }
+      25%  { transform: translateX(20px); }
+      50%  { transform: translateX(-20px); }
+      75%  { transform: translateX(20px); }
+      100% { transform: translateX(0); }
+    }
+
+    /* Pop animation: quick grow then fade out */
+    @keyframes pop {
+      0%   { transform: scale(1);    opacity: 1; }
+      50%  { transform: scale(1.25); opacity: 0.8; }
+      100% { transform: scale(0.2);  opacity: 0; }
+    }
+
+    /* ---------------------------------------------------------
+       OVERLAY (Instructions / Game Over)
+       🧠 TEACHER NOTE:
+         This overlay covers the game area with instructions or
+         game-over messages. It is hidden by default and toggled
+         with the .active class in JavaScript.
+    ---------------------------------------------------------- */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.35);
+      color: var(--text-main);
+      text-align: center;
+      padding: 1rem;
+    }
+
+    .overlay.active {
+      display: flex; /* Show overlay when active */
+    }
+
+    .overlay-content {
+      max-width: 340px;
+      padding: 1rem 1.5rem;
+      border-radius: 10px;
+      background: #ffffff;
+      border: 1px solid #d2d6e0;
+      box-shadow: 0 12px 25px rgba(15, 23, 42, 0.18);
+    }
+
+    .overlay-content h2 {
+      margin-top: 0;
+    }
+
+    .overlay-content button {
+      margin-top: 0.75rem;
+    }
+
+    /* Glossy highlight spot inside each bubble */
+    .bubble::before {
+      content: "";
+      position: absolute;
+      top: 15%;
+      left: 20%;
+      width: 25%;
+      height: 25%;
+      background: radial-gradient(circle,
+                  rgba(255,255,255,0.95),
+                  transparent 70%);
+      border-radius: 50%;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ==========================================================
+       🧱 MAIN HTML STRUCTURE
+       🧠 TEACHER NOTE:
+         The HTML is intentionally simple:
+         - A wrapper panel holding everything.
+         - A title, the HUD, the game area, a button, and a hint.
+
+         Students can:
+         - Add instructions above/below
+         - Add difficulty selectors
+         - Add a "high score" display
+  ========================================================== -->
+  <div class="wrapper">
+    <h1>Bubble Pop!</h1>
+
+    <!-- HUD showing score, misses, and time -->
+    <div class="hud">
+      <span>Score: <strong id="score">0</strong></span>
+      <span>Missed: <strong id="missed">0</strong> / 10</span>
+      <span>Time: <strong id="time">60</strong>s</span>
+    </div>
+
+    <!-- Game Area (bubbles appear here) -->
+    <div id="game-area">
+      <!-- Overlay for intro/instructions or game over -->
+      <div id="overlay" class="overlay">
+        <div class="overlay-content">
+          <h2 id="overlay-title">Bubble Pop!</h2>
+          <p id="overlay-text">
+            Pop as many bubbles as you can before time runs out.
+            If you miss 10 bubbles, the game ends early.
+          </p>
+          <button id="overlay-btn">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Start/Restart button -->
+    <div class="controls">
+      <button id="start-btn">Start Game</button>
+    </div>
+
+    <p class="hint">
+      Click the bubbles before they float away. Bigger bubbles are worth the
+      same points, so grab whatever you can!
+    </p>
+  </div>
+
+  <!-- ==========================================================
+       🧠 JAVASCRIPT GAME LOGIC
+       ========================================================== -->
+  <script>
+    /* ==========================================================
+       🎯 ELEMENT REFERENCES
+       🧠 TEACHER NOTE:
+         These lines find the HTML elements by their IDs and
+         store them in variables so we can update them later.
+
+         Students will often want to:
+         - Add new HUD elements and create new references here.
+         - Add new buttons and wire them up below.
+
+       🤖 AI PROMPT HELP:
+         "Add a new span in the HUD called 'Best Score' and make
+          a new variable in JavaScript to track and display it."
+    ========================================================== */
+    const gameArea = document.getElementById("game-area");
+    const scoreEl  = document.getElementById("score");
+    const missedEl = document.getElementById("missed");
+    const timeEl   = document.getElementById("time");
+    const startBtn = document.getElementById("start-btn");
+
+    const overlay      = document.getElementById("overlay");
+    const overlayTitle = document.getElementById("overlay-title");
+    const overlayText  = document.getElementById("overlay-text");
+    const overlayBtn   = document.getElementById("overlay-btn");
+
+    /* ==========================================================
+       🎮 GAME STATE VARIABLES
+       🧠 TEACHER NOTE:
+         These variables store the current "state" of the game:
+         - score: how many bubbles have been popped
+         - missed: how many bubbles floated away
+         - timeLeft: seconds remaining
+         - spawnIntervalId: ID for the repeated bubble creation
+         - timerIntervalId: ID for the countdown timer
+         - gameRunning: whether the game is currently active
+         - MAX_MISSED: how many misses before game over
+
+         These values can be changed to adjust difficulty.
+
+       🤖 AI PROMPT HELP:
+         "Make the game last 90 seconds instead of 60, and allow
+          15 missed bubbles instead of 10 before game over."
+    ========================================================== */
+    let score = 0;               // total bubbles popped
+    let missed = 0;              // bubbles that escaped
+    let timeLeft = 60;           // seconds remaining in the round
+    let spawnIntervalId = null;  // controls bubble spawns
+    let timerIntervalId = null;  // controls countdown
+    let gameRunning = false;     // whether the game is active
+    const MAX_MISSED = 10;       // lose condition
+
+    /* ==========================================================
+       🎨 (OPTIONAL) COLOR LIST
+       🧠 TEACHER NOTE:
+         This array is not currently used because we use HSL
+         random colors in the createBubble() function instead.
+         Students could switch to using these fixed colors if
+         they prefer.
+
+       🤖 AI PROMPT HELP:
+         "Change the bubble color logic so it picks from this
+          BALLOON_COLORS array instead of using random hues."
+    ========================================================== */
+    const BUBBLE_COLORS = [
+      "#ff4b6e", "#ffb347", "#ffd93b",
+      "#4cd964", "#4da9ff", "#c17dff"
+    ];
+
+    /* ==========================================================
+       🧹 RESET GAME STATE
+       🧠 TEACHER NOTE:
+         This function resets the score, missed count, time, and
+         clears any bubbles that are still on the screen.
+
+         It is used whenever a new game starts.
+    ========================================================== */
+    function resetGameState() {
+      score = 0;
+      missed = 0;
+      timeLeft = 60;
+
+      scoreEl.textContent = score;
+      missedEl.textContent = missed;
+      timeEl.textContent = timeLeft;
+
+      // Remove any remaining bubbles from previous game
+      document.querySelectorAll(".bubble").forEach((b) => b.remove());
+    }
+
+    /* ==========================================================
+       ▶️ START GAME
+       🧠 TEACHER NOTE:
+         This function:
+         1. Prevents double-starts if the game is already running.
+         2. Clears any old timer/spawn intervals from a previous game.
+         3. Resets all game state variables.
+         4. Starts two intervals:
+            - one for spawning bubbles
+            - one for counting down time
+
+       🤖 AI PROMPT HELP:
+         "Make the bubbles spawn faster as timeLeft gets lower,
+          so the game gets harder at the end."
+    ========================================================== */
+    function startGame() {
+      if (gameRunning) return; // Ignore if already running
+
+      // Clear old intervals from previous games
+      clearInterval(spawnIntervalId);
+      clearInterval(timerIntervalId);
+
+      resetGameState();
+      gameRunning = true;
+      startBtn.disabled = true; // Disable start button during game
+
+      // Spawn bubbles repeatedly every 800ms (0.8s)
+      spawnIntervalId = setInterval(() => {
+        if (gameRunning) createBubble();
+      }, 800);
+
+      // Start countdown timer (1 second per tick)
+      timerIntervalId = setInterval(() => {
+        timeLeft--;
+        timeEl.textContent = timeLeft;
+
+        if (timeLeft <= 0) {
+          endGame("Time's up!");
+        }
+      }, 1000);
+    }
+
+    /* ==========================================================
+       🧨 END GAME
+       🧠 TEACHER NOTE:
+         This function stops the game by:
+         - setting gameRunning to false
+         - stopping the bubble spawn interval
+         - stopping the countdown timer
+         - enabling the start button again
+         - showing an overlay with the final score and reason
+
+       The "reason" text comes from either time running out or
+       too many bubbles being missed.
+    ========================================================== */
+    function endGame(reason) {
+      if (!gameRunning) return; // Safety check
+
+      gameRunning = false;
+      clearInterval(spawnIntervalId);
+      clearInterval(timerIntervalId);
+      startBtn.disabled = false;
+
+      showOverlay(
+        "Game Over",
+        `${reason}\n\nFinal score: ${score}\nBubbles missed: ${missed}`
+      );
+    }
+
+    /* ==========================================================
+       🪟 SHOW / HIDE OVERLAY
+       🧠 TEACHER NOTE:
+         showOverlay(title, text) updates the overlay and then
+         adds the 'active' class, which makes it visible.
+
+         The overlay is also used on page load to show a brief
+         introduction before the first game.
+    ========================================================== */
+    function showOverlay(title, text) {
+      overlayTitle.textContent = title;
+      overlayText.textContent = text;
+      overlay.classList.add("active");
+    }
+
+    // Hide overlay when clicking OK button
+    overlayBtn.addEventListener("click", () => {
+      overlay.classList.remove("active");
+    });
+
+    /* ==========================================================
+       🎈 CREATE BUBBLE
+       🧠 TEACHER NOTE:
+         This is the core "spawn" function. Every time it runs:
+         1. It creates a new <div> with class "bubble".
+         2. It chooses a random size and position.
+         3. It picks a random color hue and animation speed.
+         4. It attaches a click handler (to pop it and add score).
+         5. It attaches an animationend handler (to count misses).
+         6. It appends the bubble to the game area.
+
+       Students can tweak:
+         - size range (harder if smaller)
+         - floatDuration range (faster = harder)
+         - swayDuration range (more swaying = interesting motion)
+
+       🤖 AI PROMPT HELP:
+         "Make small bubbles worth 2 points, medium bubbles 1
+          point, and very large bubbles 3 points when clicked."
+    ========================================================== */
+    function createBubble() {
+      const bubble = document.createElement("div");
+      bubble.classList.add("bubble");
+
+      // Random diameter between 45–80px
+      const size = randomInt(45, 80);
+      bubble.style.width = size + "px";
+      bubble.style.height = size + "px";
+
+      // Random color hue (rainbow variation) applied to border/glow
+      const hue = randomInt(0, 360);
+      bubble.style.borderColor = `hsla(${hue}, 100%, 70%, 0.8)`;
+      bubble.style.boxShadow =
+        `0 0 18px hsla(${hue}, 100%, 70%, 0.35)`;
+
+      // Random horizontal placement inside play area
+      const areaWidth = gameArea.clientWidth;
+      const left = randomInt(10, Math.max(10, areaWidth - size - 10));
+      bubble.style.left = left + "px";
+
+      // Random speed for float and sway
+      const floatDuration = randomInt(10000, 12000); // 10–12 seconds
+      const swayDuration  = randomInt(2000, 3000);   // 2–3 seconds
+      bubble.style.setProperty("--floatDuration", `${floatDuration}ms`);
+      bubble.style.setProperty("--swayDuration", `${swayDuration}ms`);
+
+      // Used to check if bubble popped or escaped
+      bubble.dataset.popped = "false";
+
+      /* ------------------------------------------------------
+         CLICK HANDLER — popping a bubble
+         🧠 TEACHER NOTE:
+           When the user clicks a bubble:
+           - We check if the game is running and if it was
+             already popped.
+           - Mark it as popped so we don't count it as missed.
+           - Add the 'popped' class to trigger the animation.
+           - Increase the score and update the HUD.
+           - Remove the bubble from the DOM after animation.
+
+         🤖 AI PROMPT HELP:
+           "Add a small pop sound effect when the user clicks
+            a bubble. Suggest a simple way using HTML audio."
+      ------------------------------------------------------- */
+      bubble.addEventListener("click", () => {
+        if (!gameRunning || bubble.dataset.popped === "true") return;
+
+        bubble.dataset.popped = "true";
+        bubble.classList.add("popped");
+        score++;
+        scoreEl.textContent = score;
+
+        // Remove bubble after short pop animation
+        setTimeout(() => bubble.remove(), 300);
+      });
+
+      /* ------------------------------------------------------
+         ANIMATION END HANDLER — counting misses
+         🧠 TEACHER NOTE:
+           The 'animationend' event fires when the bubble's
+           floatUp + pop animations finish. We only care about
+           bubbles that floated off the top (never popped).
+
+           If the bubble was NOT popped:
+           - Increase 'missed'.
+           - If missed reaches MAX_MISSED and the game is
+             still running, end the game.
+
+         🤖 AI PROMPT HELP:
+           "Change the logic so that missed bubbles only count
+            if they are above a certain size."
+      ------------------------------------------------------- */
+      bubble.addEventListener("animationend", () => {
+        if (bubble.dataset.popped === "false") {
+          missed++;
+          missedEl.textContent = missed;
+          if (missed >= MAX_MISSED && gameRunning) {
+            endGame("Too many bubbles escaped!");
+          }
+        }
+        bubble.remove(); // Always clean up the bubble element
+      });
+
+      // Finally add bubble to the screen
+      gameArea.appendChild(bubble);
+    }
+
+    /* ==========================================================
+       🎲 RANDOM INTEGER HELPER
+       🧠 TEACHER NOTE:
+         Returns a random integer between min and max inclusive.
+
+         Example:
+           randomInt(1, 3) → 1 or 2 or 3
+    ========================================================== */
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    /* ==========================================================
+       🕹️ EVENT LISTENERS (WIRE UP CONTROLS)
+       🧠 TEACHER NOTE:
+         This section connects buttons and page events to the
+         functions defined above.
+
+         - Start button → startGame()
+         - window load → show an intro overlay
+    ========================================================== */
+    startBtn.addEventListener("click", startGame);
+
+    // Show intro message when the page first loads
+    window.addEventListener("load", () => {
+      showOverlay(
+        "Bubble Pop!",
+        "Click the bubbles before they float away.\n\nYou have 60 seconds, but if you miss 10 bubbles the game ends early."
+      );
+    });
+
+    /* ==========================================================
+       ✅ END OF SCRIPT
+       🧠 TEACHER NOTE:
+         From here, students might:
+         - Adjust difficulty by changing sizes and durations.
+         - Add different scoring rules.
+         - Add levels or a "wave" system.
+         - Re-skin the entire game visually (colors, fonts).
+
+       🤖 AI PROMPT HELP:
+         "Help me add a 'Level 2' mode that starts after I score
+          20 points. In Level 2, bubbles move faster and are
+          slightly smaller."
+    ========================================================== */
+  </script>
+</body>
+</html>
